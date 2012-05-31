@@ -180,7 +180,7 @@ sub convert_data {
             }
             
             when ( 0x2 ) {
-                $$record_data[$i] = "." . ${&convert_date_to_ymd ( \@$record_data[$i] )} . "'" // '\N';
+                $$record_data[$i] = "." . ${&convert_date_to_ymd ( \$$record_data[$i] )} . "'" // '\N';
             }
             
             when ( [ 0x04, 0x06, 0x03 ] ) {
