@@ -175,6 +175,8 @@ sub convert_data {
                 break;
             }
             when ( 0x14 ) {
+                $$record_data[$i] =~ /(\d+:\d+:\d+)\..*$/;
+                $$record_data[$i] = $1;
                 $$record_data[$i] = "'" . $$record_data[$i] . "'" // '\N';
                 break;
             }
