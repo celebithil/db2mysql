@@ -142,13 +142,11 @@ sub getoptions {    # get options from command line
     $opts{'N'} //= $opts{'n'};
 
 }
-
-sub create_table {    # make command 'CREATE TABLE'
+# make command 'CREATE TABLE'
+sub create_table {
     my $f_table    = shift;
     my $sqlcommand = [];
-	#my $sqlcommand = "CREATE TABLE $f_table (";
     for my $i ( 0 .. $#type ) {
-		#$sqlcommand .= '"' . $name[$i] . '" ';
         given ( $type[$i] ) {
             when (0x01) {push @$sqlcommand, "\"$name[$i]\" char($len[$i])"; break; }
             when (0x02) {push @$sqlcommand, "\"$name[$i]\" date";           break }
@@ -161,28 +159,30 @@ sub create_table {    # make command 'CREATE TABLE'
             when (0x16) {push @$sqlcommand, "\"$name[$i]\" integer";                break }
             when (0x10) {push @$sqlcommand, "\"$name[$i]\" bytea";                  break }
         }
-		#$sqlcommand .= ', ';
     }
-	#$sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 2 );
-	#$sqlcommand .= ');';
     return "CREATE TABLE $f_table (" . join (', ',  @$sqlcommand) . ');';
 }
 
-sub convert_data {    # convert data to copy
+sub convert_data {
+    # convert data to copy
     my $record_data = shift;
     my $sqlcommand  = [];
     for my $i ( 0 .. $#type ) {
-
         given ( $type[$i] ) {
             when ( [ 0x01, 0x0C ] ) {
                 $$record_data[$i] =
                   ${ &get_quoted_and_coded_text( \$$record_data[$i] ) } // '\N';
                 break;
             }
-            when ( [ 0x02, 0x14 ] ) {
+            when ( 0x14 ) {
                 $$record_data[$i] = "'" . $$record_data[$i] . "'" // '\N';
                 break;
             }
+            
+            when ( 0x2 ) {
+                $$record_data[$i] = "." . ${&convert_date_to_ymd ( \@$record_data[$i] )} . "'" // '\N';
+            }
+            
             when ( [ 0x04, 0x06, 0x03 ] ) {
                 $$record_data[$i] //= 0;
                 break;
@@ -220,4 +220,11 @@ sub get_quoted_blob {
     $$record =~
 s/([\x00-\x19\x27\x5C\x7F-\xFF])/'\\\\'.sprintf ("%03o", unpack("C", $1))/ge;
     $record;
+}
+
+sub convert_date_to_ymd {
+    my $date = shift;
+    $$date =~ /(\d+)-(\d+)-(\d+)/;
+    $$date = "$3-$2-$1";
+    return $date;
 }
